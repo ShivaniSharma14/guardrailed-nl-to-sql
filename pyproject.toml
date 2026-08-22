@@ -1,0 +1,15 @@
+[project]
+name = "guardrailed-nl-to-sql"
+version = "0.1.0"
+description = "Guardrailed NL-to-SQL backend"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=6.1",
+    "djangorestframework>=3.18.0",
+    "psycopg[binary]>=3.3.4",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"
