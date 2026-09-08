@@ -1,9 +1,10 @@
 from django.db import connection
 
+
 class SchemaDiscoveryService:
     """
     A dynamic Runtime Schema Discovery Engine.
-    It inspects the live database catalogs at runtime to build 
+    It inspects the live database catalogs at runtime to build
     a clean structural context string for the LLM prompt.
     """
 
@@ -16,7 +17,7 @@ class SchemaDiscoveryService:
             WHERE table_schema = 'public' 
               AND table_name IN ('customers', 'products', 'orders', 'order_items');
         """
-        
+
         with connection.cursor() as cursor:
             cursor.execute(table_query)
             discovered_tables = [row[0] for row in cursor.fetchall()]

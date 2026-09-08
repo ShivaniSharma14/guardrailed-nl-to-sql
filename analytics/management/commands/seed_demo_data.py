@@ -28,20 +28,16 @@ class Command(BaseCommand):
             Order.objects.all().delete()
             Product.objects.all().delete()
             Customer.objects.all().delete()
-        
+
         # If they didn't pass --clear, safeguard against overwriting data
         elif any(
-            model.objects.exists()
-            for model in [Customer, Product, Order, OrderItem]
+            model.objects.exists() for model in [Customer, Product, Order, OrderItem]
         ):
             self.stdout.write(
-                self.style.WARNING(
-                    "Demo data already exists. No data was changed."
-                )
+                self.style.WARNING("Demo data already exists. No data was changed.")
             )
             self.stdout.write(
-                "Use `python manage.py seed_demo_data --clear` "
-                "to replace it."
+                "Use `python manage.py seed_demo_data --clear` to replace it."
             )
             return
 
@@ -61,11 +57,23 @@ class Command(BaseCommand):
         Customer.objects.bulk_create(customers)
 
         products = [
-            Product(name="Laptop Pro 14", category="Electronics", price=Decimal("75000.00")),
-            Product(name="Wireless Mouse", category="Electronics", price=Decimal("1500.00")),
-            Product(name="Mechanical Keyboard", category="Electronics", price=Decimal("4500.00")),
-            Product(name="Office Chair", category="Furniture", price=Decimal("12000.00")),
-            Product(name="Standing Desk", category="Furniture", price=Decimal("22000.00")),
+            Product(
+                name="Laptop Pro 14", category="Electronics", price=Decimal("75000.00")
+            ),
+            Product(
+                name="Wireless Mouse", category="Electronics", price=Decimal("1500.00")
+            ),
+            Product(
+                name="Mechanical Keyboard",
+                category="Electronics",
+                price=Decimal("4500.00"),
+            ),
+            Product(
+                name="Office Chair", category="Furniture", price=Decimal("12000.00")
+            ),
+            Product(
+                name="Standing Desk", category="Furniture", price=Decimal("22000.00")
+            ),
             Product(name="Notebook", category="Stationery", price=Decimal("250.00")),
             Product(name="Pen Set", category="Stationery", price=Decimal("400.00")),
             Product(name="Backpack", category="Accessories", price=Decimal("2500.00")),
@@ -77,10 +85,22 @@ class Command(BaseCommand):
         products = list(Product.objects.all())
 
         orders_data = [
-            (0, 0, "completed"), (0, 1, "completed"), (1, 2, "completed"), (1, 3, "cancelled"),
-            (2, 5, "completed"), (2, 8, "pending"), (3, 10, "completed"), (3, 12, "completed"),
-            (4, 15, "completed"), (4, 18, "cancelled"), (5, 20, "completed"), (5, 22, "completed"),
-            (6, 25, "completed"), (6, 28, "pending"), (7, 30, "completed"), (7, 32, "completed"),
+            (0, 0, "completed"),
+            (0, 1, "completed"),
+            (1, 2, "completed"),
+            (1, 3, "cancelled"),
+            (2, 5, "completed"),
+            (2, 8, "pending"),
+            (3, 10, "completed"),
+            (3, 12, "completed"),
+            (4, 15, "completed"),
+            (4, 18, "cancelled"),
+            (5, 20, "completed"),
+            (5, 22, "completed"),
+            (6, 25, "completed"),
+            (6, 28, "pending"),
+            (7, 30, "completed"),
+            (7, 32, "completed"),
         ]
 
         orders = []
@@ -97,15 +117,32 @@ class Command(BaseCommand):
         orders = list(Order.objects.order_by("id"))
 
         item_data = [
-            (0, 0, 1, "75000.00"), (0, 1, 2, "1500.00"), (1, 2, 1, "4500.00"),
-            (1, 5, 5, "250.00"), (2, 3, 1, "12000.00"), (2, 7, 2, "2500.00"),
-            (3, 4, 1, "22000.00"), (4, 5, 10, "250.00"), (4, 6, 3, "400.00"),
-            (5, 0, 1, "75000.00"), (5, 2, 1, "4500.00"), (6, 3, 2, "12000.00"),
-            (6, 7, 1, "2500.00"), (7, 1, 3, "1500.00"), (8, 4, 1, "22000.00"),
-            (8, 5, 8, "250.00"), (9, 6, 5, "400.00"), (10, 0, 2, "72000.00"),
-            (10, 7, 1, "2500.00"), (11, 2, 2, "4500.00"), (12, 3, 1, "12000.00"),
-            (12, 5, 20, "250.00"), (13, 4, 2, "21000.00"), (14, 0, 1, "73000.00"),
-            (14, 1, 1, "1500.00"), (15, 7, 3, "2500.00"),
+            (0, 0, 1, "75000.00"),
+            (0, 1, 2, "1500.00"),
+            (1, 2, 1, "4500.00"),
+            (1, 5, 5, "250.00"),
+            (2, 3, 1, "12000.00"),
+            (2, 7, 2, "2500.00"),
+            (3, 4, 1, "22000.00"),
+            (4, 5, 10, "250.00"),
+            (4, 6, 3, "400.00"),
+            (5, 0, 1, "75000.00"),
+            (5, 2, 1, "4500.00"),
+            (6, 3, 2, "12000.00"),
+            (6, 7, 1, "2500.00"),
+            (7, 1, 3, "1500.00"),
+            (8, 4, 1, "22000.00"),
+            (8, 5, 8, "250.00"),
+            (9, 6, 5, "400.00"),
+            (10, 0, 2, "72000.00"),
+            (10, 7, 1, "2500.00"),
+            (11, 2, 2, "4500.00"),
+            (12, 3, 1, "12000.00"),
+            (12, 5, 20, "250.00"),
+            (13, 4, 2, "21000.00"),
+            (14, 0, 1, "73000.00"),
+            (14, 1, 1, "1500.00"),
+            (15, 7, 3, "2500.00"),
         ]
 
         items = [
