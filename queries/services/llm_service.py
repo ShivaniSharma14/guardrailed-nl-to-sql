@@ -1,6 +1,8 @@
 import os
-from openai import OpenAI
+
 from django.core.exceptions import ValidationError
+from openai import OpenAI
+
 
 class LLMQueryService:
     """
@@ -10,14 +12,18 @@ class LLMQueryService:
     """
 
     def __init__(self):
-        
+
         self.api_key = os.getenv("AI_PROVIDER_API_KEY")
-        self.base_url = os.getenv("AI_PROVIDER_BASE_URL", "https://api.groq.com/openai/v1")
-        self.model_name = os.getenv("AI_MODEL_NAME", "llama-3.3-70b-versatile")
+        self.base_url = os.getenv(
+            "AI_PROVIDER_BASE_URL", "https://api.groq.com/openai/v1"
+        )
+        self.model_name = os.getenv("AI_MODEL_NAME", "llama-3.3-70b-specdec")
 
         if not self.api_key:
             # Prevent the pipeline from executing if the environment is misconfigured
-            raise ValidationError("Configuration Error: Missing AI_PROVIDER_API_KEY in environment variables.")
+            raise ValidationError(
+                "Configuration Error: Missing AI_PROVIDER_API_KEY in environment variables."
+            )
 
         # Initialize the universal client
         self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
@@ -26,8 +32,8 @@ class LLMQueryService:
         """
         Sends the prompt to the AI provider and extracts the raw SQL block.
         """
-        
-        # 💡 The Heart of NL-to-SQL: The System Guardrail Prompt
+
+        # The Heart of NL-to-SQL: The System Guardrail Prompt
         system_prompt = f"""
 You are a strict, high-performance PostgreSQL database assistant.
 Your sole job is to translate the user's natural language question into a single, valid, read-only PostgreSQL SELECT query.
@@ -46,19 +52,24 @@ CRITICAL INSTRUCTIONS:
                 model=self.model_name,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Translate this question to SQL: {user_question}"}
+                    {
+                        "role": "user",
+                        "content": f"Translate this question to SQL: {user_question}",
+                    },
                 ],
-                temperature=0.0, # Force deterministic output, minimize creative hallucinations!
-                max_tokens=300
+                temperature=0.0,  # Force deterministic output, minimize creative hallucinations!
+                max_tokens=300,
             )
-            
+
             raw_sql = response.choices[0].message.content.strip()
-            
+
             # Clean up trailing markdown symbols if the model accidentally violates constraints
             if raw_sql.startswith("```"):
                 raw_sql = raw_sql.replace("```sql", "").replace("```", "").strip()
-                
+
             return raw_sql
 
         except Exception as e:
-            raise ValidationError(f"AI Provider Service Failure: Unable to generate query. Details: {e}")
+            raise ValidationError(
+                f"AI Provider Service Failure: Unable to generate query. Details: {e}"
+            )
