@@ -1,6 +1,5 @@
 from rest_framework import serializers
 
-
 class QueryRequestSerializer(serializers.Serializer):
     # Strict validation guardrails for the natural language input
     question = serializers.CharField(
