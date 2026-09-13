@@ -17,7 +17,7 @@ class LLMQueryService:
         self.base_url = os.getenv(
             "AI_PROVIDER_BASE_URL", "https://api.groq.com/openai/v1"
         )
-        self.model_name = os.getenv("AI_MODEL_NAME", "llama-3.3-70b-specdec")
+        self.model_name = os.getenv("AI_MODEL_NAME", "openai/gpt-oss-120b")
 
         if not self.api_key:
             # Prevent the pipeline from executing if the environment is misconfigured
