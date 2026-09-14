@@ -19,9 +19,10 @@ from django.contrib import admin
 from django.urls import include, path
 
 from src.guardrailed_nl_to_sql.views import health_check
+from queries.views import NaturalLanguageQueryView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/", include("queries.urls")),
+    path("api/query/", NaturalLanguageQueryView.as_view(), name="nl-to-sql"),
     path("api/health/", health_check, name="health_check"),
 ]
