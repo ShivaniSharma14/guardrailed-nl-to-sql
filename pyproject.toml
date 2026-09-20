@@ -7,8 +7,10 @@ requires-python = ">=3.12"
 dependencies = [
     "django>=6.1",
     "djangorestframework>=3.18.0",
+    "djangorestframework-simplejwt>=5.5.1",
     "openai>=3.11.0",
     "psycopg[binary]>=3.3.4",
+    "requests>=2.34.2",
     "sqlglot>=30.18.0",
 ]
 

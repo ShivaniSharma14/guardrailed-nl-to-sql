@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 
 from .base import *  # noqa: F403
 
@@ -19,3 +20,18 @@ DATABASES = {
         "PORT": os.environ.get("POSTGRES_PORT", "5432"),
     }
 }
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),     # Short-lived security token
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),        # Long-lived token to get a new access token
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": False,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,                          # Signs the token cryptographic signature
+    "AUTH_HEADER_TYPES": ("Bearer",),                   # Clients must send: 'Authorization: Bearer <token>'
+    "USER_ID_FIELD": "email", 
+    "USER_ID_CLAIM": "user_email",  # Embeds user email into the secure JWT claim footprint
+    
+}
+
+

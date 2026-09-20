@@ -16,13 +16,21 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import path
 
 from src.guardrailed_nl_to_sql.views import health_check
 from queries.views import NaturalLanguageQueryView
+from users.views import UserRegisterView, CustomLoginView
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/auth/register/", UserRegisterView.as_view(), name="auth_register"), # Map registration view here
+    path("api/auth/login/", CustomLoginView.as_view(), name="auth_login"),
+    path("api/auth/refresh/", TokenRefreshView.as_view(), name="auth_refresh"),
     path("api/query/", NaturalLanguageQueryView.as_view(), name="nl-to-sql"),
     path("api/health/", health_check, name="health_check"),
 ]
