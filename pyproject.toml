@@ -5,6 +5,7 @@ description = "Guardrailed NL-to-SQL backend"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "coverage>=7.16.1",
     "django>=6.1",
     "djangorestframework>=3.18.0",
     "djangorestframework-simplejwt>=5.5.1",
