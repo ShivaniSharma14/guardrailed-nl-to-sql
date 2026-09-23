@@ -17,7 +17,6 @@ class SQLExecutorService:
                 try:
                     # Enforce a local timeout ONLY for this single query call
                     cursor.execute(f"SET LOCAL statement_timeout = {self.timeout_ms};")
-                
 
                     # Execute the safe SQLGlot-verified query
                     cursor.execute(secure_sql)
@@ -25,18 +24,22 @@ class SQLExecutorService:
                     # Canary check: fetch up to max_rows + 1 to detect overflow
                     rows = cursor.fetchmany(self.max_rows + 1)
 
-                    if len(rows) > self.max_rows:
-                        raise ValidationError(
-                            f"Database Protection: Query results exceeded the safe threshold of {self.max_rows} rows."
-                        )
-
                     if not cursor.description:
-                        return []
-
-                    columns = [col[0] for col in cursor.description]
-                    return [dict(zip(columns, row)) for row in rows]
+                        columns = []
+                    else:
+                        columns = [col[0] for col in cursor.description]
 
                 except Exception as e:
                     raise ValidationError(
                         f"Database Runtime Exception: The query failed during execution. Details: {e}"
                     )
+
+            if len(rows) > self.max_rows:
+                raise ValidationError(
+                    f"Result Limit Exceeded: Query results exceeded the safe threshold of {self.max_rows} rows."
+                )
+
+            if not columns:
+                return []
+
+            return [dict(zip(columns, row)) for row in rows]

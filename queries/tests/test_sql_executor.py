@@ -50,19 +50,15 @@ class SQLExecutorRowLimitTests(TestCase):
 
     def test_row_limit_error_is_currently_reported_as_runtime_exception(self):
         """
-        Documents the actual current behavior: the row-limit ValidationError
-        raised inside execute_query is caught by the surrounding
-        `except Exception`, then re-wrapped as a generic
-        'Database Runtime Exception' — the more specific 'Database
-        Protection' message is lost. This means views.py will currently
-        classify a row-limit overflow as error_code=DATABASE_EXECUTION_ERROR
-        instead of a guardrail/blocked event. This is a real audit-accuracy
-        bug we've deliberately NOT fixed yet — this test locks in today's
-        behavior so a future fix is a conscious change, not a silent one.
+        Previously this ValidationError was caught by the surrounding
+        except-block and re-wrapped as a generic 'Database Runtime
+        Exception', misclassifying a guardrail event as a DB failure.
+        Fixed: the row-limit check now raises outside the try/except.
         """
         with self.assertRaises(ValidationError) as ctx:
             self.executor.execute_query("SELECT generate_series(1, 150) AS num")
-        self.assertIn("Database Runtime Exception", str(ctx.exception))
+        self.assertIn("Result Limit Exceeded", str(ctx.exception))
+        self.assertNotIn("Database Runtime Exception", str(ctx.exception))
 
 
 class SQLExecutorDatabaseErrorTests(TestCase):

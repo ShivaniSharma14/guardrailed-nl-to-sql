@@ -5,12 +5,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from queries.serializers import QueryRequestSerializer
+from queries.serializers import QueryRequestSerializer, QueryLogSerializer
 from queries.services.llm_service import LLMQueryService
 from queries.services.schema_discovery import SchemaDiscoveryService
 from queries.services.sql_executor import SQLExecutorService
 from queries.services.sql_validator import SQLValidatorService
 from queries.models import QueryLog
+from rest_framework.generics import ListAPIView
+from rest_framework.pagination import PageNumberPagination
 
 class NaturalLanguageQueryView(APIView):
     # Core MVP Requirement: Only verified logged-in users can execute queries
@@ -85,6 +87,10 @@ class NaturalLanguageQueryView(APIView):
                 log_status = "blocked"
                 error_code = "SQL_GUARDRAIL_VIOLATION"
                 clean_message = "The generated query was rejected by system security policies."
+            elif "Result Limit Exceeded" in error_str:
+                log_status = "blocked"
+                error_code = "RESULT_LIMIT_EXCEEDED"
+                clean_message = "The query results exceeded the maximum allowed rows and was blocked."
             elif "Database Runtime Exception" in error_str:
                 log_status = "failed"
                 error_code = "DATABASE_EXECUTION_ERROR"
@@ -106,3 +112,15 @@ class NaturalLanguageQueryView(APIView):
                 "error_code": error_code
             }, status=status.HTTP_400_BAD_REQUEST)
             
+class QueryHistoryPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+class QueryHistoryView(ListAPIView):
+    serializer_class = QueryLogSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = QueryHistoryPagination
+
+    def get_queryset(self):
+        return QueryLog.objects.filter(user=self.request.user).order_by("-created_at")

@@ -13,7 +13,9 @@ class QueryLog(models.Model):
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        blank = True,
+        null = True,
         related_name="query_logs",
         db_index=True
     )

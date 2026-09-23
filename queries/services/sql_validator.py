@@ -61,13 +61,22 @@ class SQLValidatorService:
                     f"Security Violation: Unauthorized table access attempted: '{table_name}'."
                 )
 
-        # Guardrail 4: Performance Protection - Forcefully inject a maximum LIMIT clause on all Select components.
-        if isinstance(ast, exp.Select) and not ast.args.get("limit"):
-            ast = ast.limit(100)
+        MAX_ROW_LIMIT = 100
 
-        for sub_select in ast.find_all(exp.Select):
-            if not sub_select.args.get("limit"):
-                sub_select.set("limit", exp.Limit(expression=exp.Literal.number(100)))
+        # Guardrail 4: Performance Protection — enforce a maximum LIMIT on every SELECT,
+        # whether one was already present or not.
+        for select_expr in ast.find_all(exp.Select):
+            existing_limit = select_expr.args.get("limit")
+            if existing_limit is None:
+                select_expr.set("limit", exp.Limit(expression=exp.Literal.number(MAX_ROW_LIMIT)))
+            else:
+                limit_value = existing_limit.expression.this
+                if int(limit_value) > MAX_ROW_LIMIT:
+                    select_expr.set("limit", exp.Limit(expression=exp.Literal.number(MAX_ROW_LIMIT)))
+
+        # for sub_select in ast.find_all(exp.Select):
+        #     if not sub_select.args.get("limit"):
+        #         sub_select.set("limit", exp.Limit(expression=exp.Literal.number(100)))
 
         # Return the verified, clean, compiled SQL string back to the request loop
         return ast.sql(dialect="postgres")

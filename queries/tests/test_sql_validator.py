@@ -168,3 +168,8 @@ class SQLValidatorUnionBehaviorTests(TestCase):
         sql = "SELECT region FROM customers UNION SELECT region FROM customers"
         with self.assertRaises(ValidationError):
             self.validator.validate_query(sql)
+
+    def test_query_with_excessive_limit_is_clamped_to_100(self):
+        result = self.validator.validate_query("SELECT * FROM customers LIMIT 5000")
+        self.assertIn("LIMIT 100", result.upper())
+        self.assertNotIn("LIMIT 5000", result.upper())
