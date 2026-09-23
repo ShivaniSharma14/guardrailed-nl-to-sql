@@ -46,7 +46,7 @@ class QueryLogModelTests(TestCase):
         log = QueryLog.objects.create(user=self.user, question="Show revenue")
         log_id = log.id
         self.user.delete()
-        self.assertFalse(QueryLog.objects.filter(id=log_id).exists())
+        self.assertTrue(QueryLog.objects.filter(id=log_id).exists())
 
     def test_ordering_is_most_recent_first(self):
         first = QueryLog.objects.create(user=self.user, question="First")

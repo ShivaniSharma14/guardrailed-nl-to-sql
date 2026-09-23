@@ -19,12 +19,9 @@ from django.contrib import admin
 from django.urls import path
 
 from src.guardrailed_nl_to_sql.views import health_check
-from queries.views import NaturalLanguageQueryView
+from queries.views import NaturalLanguageQueryView, QueryHistoryView
 from users.views import UserRegisterView, CustomLoginView
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
+from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -32,5 +29,6 @@ urlpatterns = [
     path("api/auth/login/", CustomLoginView.as_view(), name="auth_login"),
     path("api/auth/refresh/", TokenRefreshView.as_view(), name="auth_refresh"),
     path("api/query/", NaturalLanguageQueryView.as_view(), name="nl-to-sql"),
+    path("api/query/history/",QueryHistoryView.as_view(), name="query-history"),
     path("api/health/", health_check, name="health_check"),
 ]

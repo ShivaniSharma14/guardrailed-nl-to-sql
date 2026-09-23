@@ -223,3 +223,11 @@ class QueryLogUserIsolationTests(APITestCase):
         log = QueryLog.objects.get()
         self.assertEqual(log.user, self.user_a)
         self.assertNotEqual(log.user, self.user_b)
+
+# NOTE: A dedicated view-level test for RESULT_LIMIT_EXCEEDED was removed.
+# Once SQLValidatorService clamps every LIMIT to MAX_ROW_LIMIT (see
+# sql_validator.py), SQLExecutorService can never receive more rows than
+# its own max_rows guard allows via the normal pipeline. The executor's
+# row-limit guard is still tested directly and independently in
+# test_sql_executor.py — it remains a real defense-in-depth layer even
+# though the validator should never let it get exercised in practice.
