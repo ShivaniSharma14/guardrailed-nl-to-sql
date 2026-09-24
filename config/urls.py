@@ -29,6 +29,6 @@ urlpatterns = [
     path("api/auth/login/", CustomLoginView.as_view(), name="auth_login"),
     path("api/auth/refresh/", TokenRefreshView.as_view(), name="auth_refresh"),
     path("api/query/", NaturalLanguageQueryView.as_view(), name="nl-to-sql"),
-    path("api/query/history/",QueryHistoryView.as_view(), name="query-history"),
+    path("api/queries/history/",QueryHistoryView.as_view(), name="query-history"),
     path("api/health/", health_check, name="health_check"),
 ]
