@@ -208,7 +208,7 @@ The original schema cascade-deleted a user's entire audit history when their acc
 Two containers, defined in `compose.yaml`: `api` (Django/DRF) and `postgres` (PostgreSQL 17). The API waits on Postgres's own healthcheck before starting.
 
 ```bash
-git clone <your-repo-url>
+git clone <https://github.com/ShivaniSharma14/guardrailed-nl-to-sql.git>
 cd guardrailed-nl-to-sql
 cp .env.example .env
 ```
