@@ -92,7 +92,7 @@ Neither layer is trusted to be sufficient alone. That's the actual meaning of "d
 | `/api/auth/refresh/` | POST | — | Refresh an expired access token |
 | `/api/query/` | POST | JWT | Submit a natural-language question, get back data |
 | `/api/queries/history/` | GET | JWT | Paginated history of the caller's own past queries |
-| `/api/health/` | GET | - | API health check |
+| `/api/health/` | GET | — | Health check endpoint (used for deployment/uptime checks) |
 
 ### Example: a safe query
 
@@ -205,21 +205,31 @@ The original schema cascade-deleted a user's entire audit history when their acc
 
 ## Local setup
 
+Two containers, defined in `compose.yaml`: `api` (Django/DRF) and `postgres` (PostgreSQL 17). The API waits on Postgres's own healthcheck before starting.
+
 ```bash
 git clone <your-repo-url>
 cd guardrailed-nl-to-sql
-cp .env.example .env   # set DJANGO_SECRET_KEY, AI_PROVIDER_API_KEY, DB credentials
+cp .env.example .env
+```
+
+Then edit `.env` and set:
+- `DJANGO_SECRET_KEY` — generate one per environment, at least 32 bytes:
+  ```bash
+  python -c "import secrets; print(secrets.token_urlsafe(64))"
+  ```
+  Never reuse a development key in production.
+- `AI_PROVIDER_API_KEY` — a Groq API key (or another OpenAI-compatible provider; override `AI_PROVIDER_BASE_URL` / `AI_MODEL_NAME` if so)
+- `POSTGRES_PASSWORD` — any value for local dev; a real secret in production
+
+```bash
 docker compose up --build
 docker compose exec -it api uv run python manage.py migrate
 docker compose exec -it api uv run python manage.py seed_demo_data
 docker compose exec -it api uv run python manage.py test
 ```
 
-`DJANGO_SECRET_KEY` should be generated per-environment, at least 32 bytes, e.g.:
-```bash
-python -c "import secrets; print(secrets.token_urlsafe(64))"
-```
-Never reuse a development key in production.
+Health check once running: `curl http://localhost:8000/api/health/`
 
 ---
 
