@@ -14,6 +14,8 @@ RUN uv sync --frozen --no-dev
 
 COPY . .
 
+RUN chmod +x docker-entrypoint.sh
+
 EXPOSE 8000
 
-CMD ["uv", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["uv", "run", "sh", "docker-entrypoint.sh"]

@@ -5,14 +5,17 @@ description = "Guardrailed NL-to-SQL backend"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "coverage>=7.16.1",
     "django>=6.1",
+    "django-cors-headers>=4.6.0",
+    "dj-database-url>=2.3.0",
     "djangorestframework>=3.18.0",
     "djangorestframework-simplejwt>=5.5.1",
+    "gunicorn>=23.0.0",
     "openai>=3.11.0",
     "psycopg[binary]>=3.3.4",
     "requests>=2.34.2",
     "sqlglot>=30.18.0",
+    "whitenoise>=6.9.0",
 ]
 
 [tool.ruff]
@@ -34,4 +37,5 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "ruff>=0.16.4",
+    "coverage>=7.16.1",
 ]

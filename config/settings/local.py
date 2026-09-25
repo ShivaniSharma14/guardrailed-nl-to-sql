@@ -8,6 +8,7 @@ SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "api"]
+CORS_ALLOW_ALL_ORIGINS = True
 
 
 DATABASES = {
