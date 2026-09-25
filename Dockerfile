@@ -18,4 +18,4 @@ RUN chmod +x docker-entrypoint.sh
 
 EXPOSE 8000
 
-CMD ["uv", "run", "sh", "docker-entrypoint.sh"]
+CMD ["uv", "run", "--no-sync", "sh", "docker-entrypoint.sh"]
