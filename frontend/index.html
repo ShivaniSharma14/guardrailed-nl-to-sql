@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Guardrailed NL-to-SQL</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="login-view">
+    <h1>Log in</h1>
+    <input type="email" id="email-input" placeholder="Email">
+    <input type="password" id="password-input" placeholder="Password">
+    <button id="login-button">Log in</button>
+    <p id="login-error"></p>
+  </div>
+
+  <div id="app-view" class="hidden">
+    <h1>Ask a question</h1>
+    <input type="text" id="question-input" placeholder="Show revenue by region">
+    <button id="ask-button">Ask</button>
+    <p id="query-error"></p>
+    <table id="results-table"></table>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
