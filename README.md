@@ -4,7 +4,10 @@ A Django/DRF backend that lets authenticated users ask questions in plain Englis
 
 The interesting engineering problem here isn't "call an LLM and run its SQL." It's: **an LLM is an untrusted input source**, and the system has to treat it that way — the same way you'd treat any user-submitted string, except this one is fluent, confident, and occasionally wrong. This project is the security boundary built around that assumption.
 
-> ⚠️ **Status:** actively hardened, test-covered backend. Frontend and public deployment are in progress — see [Roadmap](#roadmap).
+> ⚠️ **Status:** backend built, tested, hardened, and deployed. Frontend is in progress — see [Roadmap](#roadmap).
+
+**Live API:** https://guardrailed-nl-to-sql.onrender.com/api/health/
+*(hosted on Render's free tier — the first request after idle may take a moment to wake the service up)*
 
 ---
 
@@ -19,7 +22,7 @@ This project treats that question as the actual spec, not an afterthought:
 - The LLM only ever *proposes* SQL. It has no execution privileges of its own.
 - Every proposal is parsed into an AST and checked against an explicit policy before anything runs.
 - The database connection itself is read-only, as a second, independent layer of defense.
-- Every request — successful, blocked, or failed — is written to an audit log, because "we have security controls" and "we can prove the security controls fired" are different claims.
+- Every query attempt — successful, blocked, or failed — is recorded in `QueryLog` for auditability, because "we have security controls" and "we can prove the security controls fired" are different claims.
 
 ---
 
@@ -80,6 +83,7 @@ Neither layer is trusted to be sufficient alone. That's the actual meaning of "d
 | LLM provider | Groq (OpenAI-compatible API) |
 | Dev environment | Docker Compose, `uv` for dependency management, `ruff` for linting |
 | Testing | Django `TestCase` / DRF `APITestCase`, `unittest.mock`, `coverage.py` |
+| Deployment | Render (app, Docker-based), Neon (serverless Postgres), `gunicorn`, `whitenoise` |
 
 ---
 
@@ -148,7 +152,7 @@ The governing rule: **a user's history should never reveal more than the live AP
 
 ## Testing
 
-This project was built with a deliberate testing pass, app by app, treating the test suite as proof of specific security and correctness claims — not as a coverage-percentage exercise.
+This project was built with a deliberate testing pass, app by app, treating the test suite as proof of specific security and correctness claims — not as a coverage-percentage exercise. 98% coverage is a byproduct of that approach, not the goal of it.
 
 **132 tests, 98% coverage**, covering:
 
@@ -156,8 +160,9 @@ This project was built with a deliberate testing pass, app by app, treating the 
 - **SQL firewall** (`queries.services.sql_validator`) — the highest-value suite in the project: every guardrail tested against both what it *should* accept and what it *must* reject (writes, DDL, stacked statements, unauthorized tables, CTE table-name evasion attempts, oversized `LIMIT` clauses)
 - **Executor**: row-limit enforcement, statement timeouts, transaction recovery after a failed query
 - **LLM service**: mocked at the client boundary (no real network calls in the test suite), covering malformed responses, provider failures, and prompt construction
-- **Full pipeline** (`queries.views`): the single most important test in the suite proves that when a proposed query is rejected, `SQLExecutorService.execute_query` is **never called** — an architectural guarantee, not just a status-code check
-- **Query history**: user isolation (users cannot see each other's history), pagination limits, and confirms the excluded fields never appear even in raw response content
+- **Query history**: user isolation (users cannot see each other's history), pagination limits, and confirms restricted fields never appear even in raw response content
+
+**The single most important test in the suite:** when a proposed query is rejected, `SQLExecutorService.execute_query` is proven to **never be called** — a behavioral/security invariant, not just a status-code check.
 
 Run the suite:
 ```bash
@@ -170,12 +175,12 @@ docker compose exec -it api uv run coverage run --source='.' manage.py test
 docker compose exec -it api uv run coverage report -m
 ```
 
-### Bugs found and fixed *through* this testing process
+### Bugs discovered through testing
 
-Writing the test suite surfaced two real defects that manual testing had missed — this is deliberately documented here rather than hidden, because finding and fixing issues through testing is the actual point of the exercise:
+Testing exposed two real defects that manual testing had missed — both fixed and covered by regression tests:
 
-1. **Row-limit errors were misclassified.** The executor's row-limit guard raised its error *inside* its own `try/except`, so it was silently re-wrapped as a generic database failure instead of being logged as a blocked/guardrail event. Fixed by raising it outside the exception boundary with its own distinguishable error code (`RESULT_LIMIT_EXCEEDED`), correctly logged as `status=blocked` rather than `status=failed`.
-2. **The `LIMIT` guardrail only handled missing limits, not oversized ones.** A proposed query with `LIMIT 5000` would have passed through unmodified. Fixed so the validator clamps *any* limit above the configured ceiling, not just filling in a default when none was present.
+- Result-limit errors were incorrectly classified as generic database failures instead of guardrail/blocked events.
+- Oversized `LIMIT` clauses already present in a proposed query weren't being clamped — only missing ones were.
 
 ---
 
@@ -183,23 +188,10 @@ Writing the test suite surfaced two real defects that manual testing had missed 
 
 Documented honestly, in the interest of the same "prove it, don't assume it" standard applied to the rest of the project:
 
-- **No rate limiting yet** on `POST /api/query/`. Every request is validated and logged individually, but nothing currently throttles request volume per user — the intended next control against automated probing.
+- **No rate limiting yet** on `POST /api/query/`. Requests are validated and logged individually, but there is currently no per-user throttling to limit API, LLM, and database resource consumption.
 - **`UNION` queries are currently rejected**, but mislabeled internally as a "prohibited write operation" rather than as an unsupported read pattern (a `UNION` parses to a different AST node type than a plain `SELECT`, which the validator doesn't yet special-case). Behavior is safe (the query is still blocked); the error message is just imprecise.
 - **No log-retention/purge policy implemented yet.** `QueryLog.user` uses `on_delete=SET_NULL` so a user's audit trail survives account deletion, but there's no scheduled job purging old records by age. A `purge_old_logs` management command run via cron is the planned approach.
 - **JWT signing currently shares Django's `SECRET_KEY`.** Functional and secure with a properly generated key, but decoupling it into its own `SIMPLE_JWT["SIGNING_KEY"]` would allow rotating one without invalidating the other.
-
----
-
-## Design decisions worth knowing about
-
-**Why AST parsing instead of keyword/regex blocking?**
-A blocklist for `DROP`, `DELETE`, etc. is trivially evaded (comments, whitespace tricks, case variation, semantically-equivalent alternate syntax). Parsing into a real AST via `sqlglot` and checking node types means the validator reasons about what the query *is*, not what substrings it contains.
-
-**Why a read-only database role in addition to the AST validator?**
-Because "we wrote a validator" and "we understand exactly what our validator guarantees" are different claims. The AST checks are the primary control; the database permission is a second, independent backstop that doesn't depend on the application layer being bug-free.
-
-**Why `SET_NULL` instead of `CASCADE` on `QueryLog.user`?**
-The original schema cascade-deleted a user's entire audit history when their account was deleted — directly undermining the project's own audit-trail premise. `SET_NULL` preserves the log with an orphaned (`user=None`) reference; account removal is expected to go through deactivation (`is_active=False`) rather than hard deletion in normal operation.
 
 ---
 
@@ -233,13 +225,54 @@ Health check once running: `curl http://localhost:8000/api/health/`
 
 ---
 
+## Deployment
+
+The API is deployed on **Render** (Docker-based web service) against a **Neon** serverless Postgres database — the same `Dockerfile` used locally runs unmodified in production; only environment variables differ between the two.
+
+**What changes between local and production, and why:**
+
+| Concern | Local | Production | Why |
+|---|---|---|---|
+| WSGI server | Django dev server | `gunicorn` | The dev server is single-threaded and explicitly unsafe for real traffic |
+| Static files | Served by `runserver` (only works with `DEBUG=True`) | `whitenoise`, serving pre-collected files directly from the Django process | `DEBUG=False` in production means Django stops serving static/admin assets itself |
+| Database config | Discrete `POSTGRES_HOST`/`USER`/`PASSWORD` env vars | A single `DATABASE_URL` connection string, parsed by `dj-database-url` | Matches how most managed Postgres providers (Neon included) hand out credentials |
+| Settings module | `config.settings.local` | `config.settings.production` | Same split-by-environment pattern as `local.py` — see `config/settings/` |
+| HTTPS | N/A | `SECURE_SSL_REDIRECT`, `SECURE_PROXY_SSL_HEADER` set | Render terminates TLS at the platform edge and forwards requests to the container; Django is configured to correctly interpret the forwarded HTTPS header |
+
+**Startup sequence, defined in `docker-entrypoint.sh`:**
+```bash
+python manage.py collectstatic --noinput
+exec gunicorn config.wsgi:application --bind "0.0.0.0:${PORT:-8000}"
+```
+`collectstatic` runs at container *start* rather than image *build* time, since it needs secrets that only exist once the container starts with real environment variables injected. The port is read from `$PORT` rather than hardcoded, since Render assigns it dynamically per deploy.
+
+**Deliberately not automated:** database migrations — run manually, once, after a deploy, so a migration failure stays separate and visible from a build failure.
+
+**Known trade-off:** Render's free tier spins the service down after 15 minutes of inactivity; the first request after idle takes several seconds to wake it back up. Acceptable for a portfolio project; the fix in a real production setting is a paid always-on instance tier.
+
+---
+
+## Design decisions worth knowing about
+
+**Why AST parsing instead of keyword/regex blocking?**
+A blocklist for `DROP`, `DELETE`, etc. is trivially evaded (comments, whitespace tricks, case variation, semantically-equivalent alternate syntax). Parsing into a real AST via `sqlglot` and checking node types means the validator reasons about what the query *is*, not what substrings it contains.
+
+**Why a read-only database role in addition to the AST validator?**
+Because "we wrote a validator" and "we understand exactly what our validator guarantees" are different claims. The AST checks are the primary control; the database permission is a second, independent backstop that doesn't depend on the application layer being bug-free.
+
+**Why `SET_NULL` instead of `CASCADE` on `QueryLog.user`?**
+The original schema cascade-deleted a user's entire audit history when their account was deleted — directly undermining the project's own audit-trail premise. `SET_NULL` preserves the log with an orphaned (`user=None`) reference; account removal is expected to go through deactivation (`is_active=False`) rather than hard deletion in normal operation.
+
+---
+
 ## Roadmap
 
-- [ ] Rate limiting on `POST /api/query/`
 - [ ] Minimal frontend (login, question box, results table, live demo of blocked queries)
-- [ ] Public deployment (Railway/Render)
+- [ ] Demo GIF/screenshots once the frontend exists — showing a blocked query and a successful one side by side
+- [ ] Rate limiting on `POST /api/query/`
 - [ ] `purge_old_logs` management command + scheduled job
 - [ ] Decouple JWT `SIGNING_KEY` from `SECRET_KEY`
+- [ ] GitHub Actions CI pipeline (tests, coverage, lint, Docker build)
 
 ---
 
