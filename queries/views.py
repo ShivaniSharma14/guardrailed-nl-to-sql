@@ -88,18 +88,36 @@ class NaturalLanguageQueryView(APIView):
             
             
             # Determine the standardized error code and classification
-            if "Security Violation" in error_str:
+            if "Multiple or invalid SQL statements" in error_str:
                 log_status = "blocked"
-                error_code = "SQL_GUARDRAIL_VIOLATION"
-                clean_message = "The generated query was rejected by system security policies."
+                error_code = "SQL_MULTI_STATEMENT_BLOCKED"
+                clean_message = "Only a single query is permitted per request."
+
+            elif "Prohibited database write operation" in error_str:
+                log_status = "blocked"
+                error_code = "SQL_WRITE_OPERATION_BLOCKED"
+                clean_message = "Only read-only (SELECT) queries are permitted."
+
+            elif "Unauthorized table access" in error_str:
+                log_status = "blocked"
+                error_code = "SQL_TABLE_NOT_ALLOWED"
+                clean_message = "This query references data outside the available dataset."
+
+            elif "SQL Syntax Error" in error_str:
+                log_status = "blocked"
+                error_code = "SQL_SYNTAX_INVALID"
+                clean_message = "The generated query was not valid SQL and was rejected."
+
             elif "Result Limit Exceeded" in error_str:
                 log_status = "blocked"
                 error_code = "RESULT_LIMIT_EXCEEDED"
                 clean_message = "The query results exceeded the maximum allowed rows and was blocked."
+
             elif "Database Runtime Exception" in error_str:
                 log_status = "failed"
                 error_code = "DATABASE_EXECUTION_ERROR"
                 clean_message = "The query encountered a runtime error inside the database execution pool."
+
             else:
                 log_status = "failed"
                 error_code = "PIPELINE_EXCEPTION"
