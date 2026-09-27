@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+import logging
 
 from queries.serializers import QueryRequestSerializer, QueryLogSerializer
 from queries.services.llm_service import LLMQueryService
@@ -13,6 +14,7 @@ from queries.services.sql_validator import SQLValidatorService
 from queries.models import QueryLog
 from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
+logger = logging.getLogger(__name__)
 
 class NaturalLanguageQueryView(APIView):
     # Core MVP Requirement: Only verified logged-in users can execute queries
@@ -81,6 +83,9 @@ class NaturalLanguageQueryView(APIView):
         except ValidationError as e:
             latency_ms = int((time.perf_counter() - start_time) * 1000)
             error_str = str(e)
+
+            
+            
             
             # Determine the standardized error code and classification
             if "Security Violation" in error_str:
@@ -106,6 +111,10 @@ class NaturalLanguageQueryView(APIView):
             log_entry.error_message = clean_message
             log_entry.latency_ms = latency_ms
             log_entry.save()
+
+            
+
+            logger.warning("Query pipeline failure [%s]: %s", error_code, error_str)
             
             return Response({
                 "error": clean_message, 

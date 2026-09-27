@@ -1,32 +1,461 @@
-body {
-  font-family: sans-serif;
-  max-width: 500px;
-  margin: 40px auto;
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --border: #e2e4e9;
+
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+
+  --text: #1f2937;
+  --muted: #6b7280;
+
+  --error: #dc2626;
+  --success: #15803d;
+  --warning: #a16207;
 }
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+
+  padding: 40px 20px;
+
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+
+  font-size: 15px;
+  line-height: 1.5;
+
+  background: var(--bg);
+  color: var(--text);
+}
+
+
+/* ------------------------------
+   Page layout
+-------------------------------- */
+
+.page {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+
+/* ------------------------------
+   Demo notice
+-------------------------------- */
+
+.demo-notice {
+  margin: 0;
+  padding: 10px 14px;
+
+  background: #fff8e1;
+  border: 1px solid #e0c68a;
+  border-radius: 6px;
+
+  color: #5f4b16;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+
+/* ------------------------------
+   Cards
+-------------------------------- */
+
+.card {
+  width: 100%;
+
+  padding: 28px;
+
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.auth-card {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+
+/* ------------------------------
+   Typography
+-------------------------------- */
+
+h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 1.3;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+
+.subtitle {
+  margin: 6px 0 0;
+
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.card-header {
+  margin-bottom: 24px;
+}
+
+.section-description {
+  margin: 4px 0 0;
+
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+
+/* ------------------------------
+   Forms
+-------------------------------- */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+input {
+  width: 100%;
+
+  padding: 10px 12px;
+
+  border: 1px solid var(--border);
+  border-radius: 7px;
+
+  background: #ffffff;
+  color: var(--text);
+
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+input::placeholder {
+  color: #9ca3af;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--primary);
+
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.12);
+}
+
+
+/* ------------------------------
+   Buttons
+-------------------------------- */
+
+button {
+  padding: 10px 16px;
+
+  border: 1px solid transparent;
+  border-radius: 7px;
+
+  background: var(--primary);
+  color: #ffffff;
+
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--primary-hover);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: #ffffff;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+button.secondary:hover {
+  background: var(--bg);
+}
+
+
+/* ------------------------------
+   Authentication
+-------------------------------- */
+
+.auth-link {
+  margin: 18px 0 0;
+
+  font-size: 0.9rem;
+}
+
+.auth-link a {
+  color: var(--primary);
+}
+
+
+/* ------------------------------
+   Messages
+-------------------------------- */
+
+.message {
+  min-height: 1.2em;
+  margin: 8px 0 0;
+
+  font-size: 0.85rem;
+}
+
+.error-text {
+  color: var(--error);
+}
+
+
+/* ------------------------------
+   Application header
+-------------------------------- */
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  gap: 20px;
+
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+
+/* ------------------------------
+   Query section
+-------------------------------- */
+
+.query-section {
+  margin-top: 24px;
+}
+
+.query-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+
+  gap: 10px;
+
+  margin-top: 8px;
+}
+
+
+/* ------------------------------
+   Results / History sections
+-------------------------------- */
+
+.results-section {
+  margin-top: 32px;
+}
+
+.history-section {
+  margin-top: 40px;
+  padding-top: 28px;
+
+  border-top: 1px solid var(--border);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 16px;
+
+  margin-bottom: 12px;
+}
+
+
+/* ------------------------------
+   Tables
+-------------------------------- */
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  font-size: 0.85rem;
+}
+
+th,
+td {
+  padding: 10px 12px;
+
+  border-bottom: 1px solid var(--border);
+
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #f8f9fb;
+
+  color: var(--muted);
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+
+/* Results table */
+
+#results-table {
+  min-width: 600px;
+}
+
+
+/* History table */
+
+#history-table {
+  min-width: 1000px;
+}
+
+#history-table td:nth-child(2) {
+  min-width: 220px;
+  max-width: 320px;
+}
+
+#history-table td:nth-child(3) {
+  min-width: 240px;
+
+  white-space: nowrap;
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    "Liberation Mono",
+    monospace;
+
+  font-size: 0.8rem;
+}
+
+#history-table td:nth-child(4),
+#history-table td:nth-child(5),
+#history-table td:nth-child(6),
+#history-table td:nth-child(7),
+#history-table td:nth-child(8) {
+  white-space: nowrap;
+}
+
+
+/* ------------------------------
+   Status badges
+-------------------------------- */
+
+.status {
+  display: inline-block;
+
+  padding: 2px 7px;
+
+  border-radius: 999px;
+
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-success {
+  background: #dcfce7;
+  color: var(--success);
+}
+
+.status-blocked {
+  background: #fef3c7;
+  color: var(--warning);
+}
+
+.status-failed {
+  background: #fee2e2;
+  color: var(--error);
+}
+
+
+/* ------------------------------
+   Utility
+-------------------------------- */
 
 .hidden {
   display: none;
 }
 
-input, button {
-  display: block;
-  margin: 8px 0;
-  padding: 8px;
-  width: 100%;
-}
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 16px;
-}
+/* ------------------------------
+   Responsive
+-------------------------------- */
 
-th, td {
-  border: 1px solid #ccc;
-  padding: 6px;
-  text-align: left;
-}
+@media (max-width: 700px) {
 
-#login-error, #query-error {
-  color: red;
+  body {
+    padding: 20px 12px;
+  }
+
+  .card {
+    padding: 20px;
+  }
+
+  .app-header {
+    flex-direction: column;
+  }
+
+  .query-form {
+    grid-template-columns: 1fr;
+  }
+
+  .section-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
 }

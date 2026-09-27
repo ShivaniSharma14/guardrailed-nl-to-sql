@@ -1,0 +1,555 @@
+// Your deployed backend. No trailing slash.
+const API_BASE = "https://guardrailed-nl-to-sql.onrender.com";
+
+
+// --------------------------------------------------
+// Authentication state
+// --------------------------------------------------
+
+let accessToken = null;
+
+
+// --------------------------------------------------
+// Element references
+// --------------------------------------------------
+
+const emailInput = document.querySelector("#email-input");
+const passwordInput = document.querySelector("#password-input");
+const loginButton = document.querySelector("#login-button");
+const loginError = document.querySelector("#login-error");
+
+const loginView = document.querySelector("#login-view");
+const registerView = document.querySelector("#register-view");
+const appView = document.querySelector("#app-view");
+
+const showRegisterLink = document.querySelector("#show-register-link");
+const showLoginLink = document.querySelector("#show-login-link");
+
+const registerEmailInput =
+  document.querySelector("#register-email-input");
+
+const registerPasswordInput =
+  document.querySelector("#register-password-input");
+
+const registerButton =
+  document.querySelector("#register-button");
+
+const registerError =
+  document.querySelector("#register-error");
+
+const logoutButton =
+  document.querySelector("#logout-button");
+
+const questionInput =
+  document.querySelector("#question-input");
+
+const askButton =
+  document.querySelector("#ask-button");
+
+const queryError =
+  document.querySelector("#query-error");
+
+const resultsTable =
+  document.querySelector("#results-table");
+
+const historyButton =
+  document.querySelector("#history-button");
+
+const historyTable =
+  document.querySelector("#history-table");
+
+
+// --------------------------------------------------
+// Login
+// --------------------------------------------------
+
+loginButton.addEventListener("click", async function () {
+
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  loginError.textContent = "";
+
+  if (!email || !password) {
+    loginError.textContent =
+      "Please enter email and password.";
+    return;
+  }
+
+  setButtonLoading(loginButton, true, "Logging in...");
+
+  try {
+
+    const response = await fetch(
+      `${API_BASE}/api/auth/login/`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      loginError.textContent =
+        data.error || "Login failed.";
+      return;
+    }
+
+    accessToken = data.access;
+
+    loginView.classList.add("hidden");
+    registerView.classList.add("hidden");
+    appView.classList.remove("hidden");
+
+    questionInput.focus();
+
+  } catch (error) {
+
+    loginError.textContent =
+      "Could not reach the server. Try again.";
+
+  } finally {
+
+    setButtonLoading(loginButton, false, "Log in");
+
+  }
+});
+
+
+// --------------------------------------------------
+// Registration
+// --------------------------------------------------
+
+showRegisterLink.addEventListener("click", function (event) {
+
+  event.preventDefault();
+
+  loginView.classList.add("hidden");
+  registerView.classList.remove("hidden");
+
+  registerEmailInput.focus();
+
+});
+
+
+showLoginLink.addEventListener("click", function (event) {
+
+  event.preventDefault();
+
+  registerView.classList.add("hidden");
+  loginView.classList.remove("hidden");
+
+  emailInput.focus();
+
+});
+
+
+registerButton.addEventListener("click", async function () {
+
+  const email = registerEmailInput.value.trim();
+  const password = registerPasswordInput.value;
+
+  registerError.textContent = "";
+
+  if (!email || !password) {
+    registerError.textContent =
+      "Please enter email and password.";
+    return;
+  }
+
+  setButtonLoading(registerButton, true, "Registering...");
+
+  try {
+
+    const response = await fetch(
+      `${API_BASE}/api/auth/register/`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+
+      const firstError =
+        Object.values(data)[0];
+
+      registerError.textContent =
+        Array.isArray(firstError)
+          ? firstError[0]
+          : "Registration failed.";
+
+      return;
+    }
+
+    registerView.classList.add("hidden");
+    loginView.classList.remove("hidden");
+
+    emailInput.value = email;
+    passwordInput.value = "";
+
+    loginError.textContent =
+      "Registration successful. Please log in.";
+
+    emailInput.focus();
+
+  } catch (error) {
+
+    registerError.textContent =
+      "Could not reach the server. Try again.";
+
+  } finally {
+
+    setButtonLoading(
+      registerButton,
+      false,
+      "Register"
+    );
+
+  }
+
+});
+
+
+// --------------------------------------------------
+// Logout
+// --------------------------------------------------
+
+logoutButton.addEventListener("click", function () {
+
+  accessToken = null;
+
+  appView.classList.add("hidden");
+  registerView.classList.add("hidden");
+  loginView.classList.remove("hidden");
+
+  questionInput.value = "";
+
+  clearTable(resultsTable);
+  clearTable(historyTable);
+
+  queryError.textContent = "";
+
+  emailInput.focus();
+
+});
+
+
+// --------------------------------------------------
+// Ask a question
+// --------------------------------------------------
+
+askButton.addEventListener("click", async function () {
+
+  const question =
+    questionInput.value.trim();
+
+  queryError.textContent = "";
+  clearTable(resultsTable);
+
+  if (!question) {
+
+    queryError.textContent =
+      "Please enter a question.";
+
+    return;
+  }
+
+  setButtonLoading(askButton, true, "Running...");
+
+  try {
+
+    const response = await fetch(
+      `${API_BASE}/api/query/`,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`
+        },
+
+        body: JSON.stringify({
+          question: question
+        })
+      }
+    );
+
+
+    // Session expired / invalid token
+    if (response.status === 401) {
+
+      accessToken = null;
+
+      appView.classList.add("hidden");
+      loginView.classList.remove("hidden");
+
+      loginError.textContent =
+        "Your session expired. Please log in again.";
+
+      return;
+    }
+
+
+    const data = await response.json();
+
+
+    if (!response.ok) {
+
+      queryError.textContent =
+        `${data.error || "Request failed."}` +
+        `${data.error_code ? ` (${data.error_code})` : ""}`;
+
+      return;
+    }
+
+
+    renderTable(
+      resultsTable,
+      data.data,
+      "No results returned."
+    );
+
+
+  } catch (error) {
+
+    queryError.textContent =
+      "Could not reach the server. Try again.";
+
+  } finally {
+
+    setButtonLoading(
+      askButton,
+      false,
+      "Ask"
+    );
+
+  }
+
+});
+
+
+// --------------------------------------------------
+// Load query history
+// --------------------------------------------------
+
+historyButton.addEventListener("click", async function () {
+
+  clearTable(historyTable);
+
+  setButtonLoading(
+    historyButton,
+    true,
+    "Loading..."
+  );
+
+  try {
+
+    const response = await fetch(
+      `${API_BASE}/api/queries/history/`,
+      {
+        headers: {
+          "Authorization": `Bearer ${accessToken}`
+        }
+      }
+    );
+
+
+    if (response.status === 401) {
+
+      accessToken = null;
+
+      appView.classList.add("hidden");
+      loginView.classList.remove("hidden");
+
+      loginError.textContent =
+        "Your session expired. Please log in again.";
+
+      return;
+    }
+
+
+    const data = await response.json();
+
+
+    if (!response.ok) {
+
+      renderMessageRow(
+        historyTable,
+        "Could not load history."
+      );
+
+      return;
+    }
+
+
+    // DRF pagination:
+    // the history records are inside data.results.
+    renderTable(
+      historyTable,
+      data.results,
+      "No query history yet."
+    );
+
+
+  } catch (error) {
+
+    renderMessageRow(
+      historyTable,
+      "Could not reach the server."
+    );
+
+  } finally {
+
+    setButtonLoading(
+      historyButton,
+      false,
+      "Load history"
+    );
+
+  }
+
+});
+
+
+// --------------------------------------------------
+// Generic table renderer
+// --------------------------------------------------
+
+function renderTable(table, rows, emptyMessage) {
+
+  clearTable(table);
+
+  if (!rows || rows.length === 0) {
+    renderMessageRow(table, emptyMessage);
+    return;
+  }
+
+
+  // Header
+  const headerRow =
+    document.createElement("tr");
+
+  Object.keys(rows[0]).forEach(function (key) {
+
+    const th =
+      document.createElement("th");
+
+    th.textContent = key;
+
+    headerRow.appendChild(th);
+
+  });
+
+  table.appendChild(headerRow);
+
+
+  // Data rows
+  rows.forEach(function (row) {
+
+    const tr =
+      document.createElement("tr");
+
+
+    Object.entries(row).forEach(function ([key, value]) {
+
+      const td =
+        document.createElement("td");
+
+
+      // Status gets a visual badge.
+      if (key === "status") {
+
+        const status =
+          document.createElement("span");
+
+        status.textContent = value;
+
+        status.classList.add(
+          "status",
+          `status-${String(value).toLowerCase()}`
+        );
+
+        td.appendChild(status);
+
+      } else {
+
+        td.textContent =
+          value ?? "";
+
+      }
+
+
+      tr.appendChild(td);
+
+    });
+
+
+    table.appendChild(tr);
+
+  });
+
+}
+
+
+// --------------------------------------------------
+// Table helpers
+// --------------------------------------------------
+
+function clearTable(table) {
+  table.innerHTML = "";
+}
+
+
+function renderMessageRow(table, message) {
+
+  const row =
+    document.createElement("tr");
+
+  const cell =
+    document.createElement("td");
+
+  cell.textContent = message;
+
+  cell.colSpan = 20;
+
+  row.appendChild(cell);
+
+  table.appendChild(row);
+
+}
+
+
+// --------------------------------------------------
+// Button loading state
+// --------------------------------------------------
+
+function setButtonLoading(button, loading, text) {
+
+  button.disabled = loading;
+  button.textContent = text;
+
+}
+
+
+window.addEventListener('pageshow', (event) => {
+    // If the page was restored from the back-forward cache, force a fresh reload
+    if (event.persisted) {
+        window.location.reload();
+    }
+});

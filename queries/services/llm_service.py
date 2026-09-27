@@ -44,7 +44,8 @@ CRITICAL INSTRUCTIONS:
 1. Use ONLY the tables and columns listed in the schema context above. Do not guess or hallucinate names.
 2. Generate exactly ONE executable SELECT statement.
 3. Do not modify, insert, delete, or alter any data (No INSERT, UPDATE, DELETE, DROP, ALTER).
-4. Return ONLY the raw SQL code. Do not include markdown blocks like ```sql, do not explain your logic, do not write text outside the query.
+4. For any text/string comparison or filter (WHERE clauses on names, regions, categories, statuses, etc.), always use ILIKE instead of =, so matching is case-insensitive. Example: use WHERE region ILIKE 'north' instead of WHERE region = 'North'.
+5. Return ONLY the raw SQL code. Do not include markdown blocks like ```sql, do not explain your logic, do not write text outside the query.
 """
 
         try:
