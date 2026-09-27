@@ -60,8 +60,16 @@ CRITICAL INSTRUCTIONS:
                     },
                 ],
                 temperature=0.0,  # Force deterministic output, minimize creative hallucinations!
-                max_tokens=300,
+                max_tokens=800,
             )
+
+            finish_reason = response.choices[0].finish_reason
+            if finish_reason == "length":
+                raise ValidationError(
+            "AI Provider Service Failure: The generated query was cut off before completion "
+            "(response exceeded the token limit). Try a simpler or more specific question."
+            )
+            raw_sql = response.choices[0].message.content.strip()
 
             raw_sql = response.choices[0].message.content.strip()
 
