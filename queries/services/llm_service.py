@@ -46,6 +46,7 @@ CRITICAL INSTRUCTIONS:
 3. Do not modify, insert, delete, or alter any data (No INSERT, UPDATE, DELETE, DROP, ALTER).
 4. For any text/string comparison or filter (WHERE clauses on names, regions, categories, statuses, etc.), always use ILIKE instead of =, so matching is case-insensitive. Example: use WHERE region ILIKE 'north' instead of WHERE region = 'North'.
 5. Return ONLY the raw SQL code. Do not include markdown blocks like ```sql, do not explain your logic, do not write text outside the query.
+6. If the user's question requests any data modification, deletion, or any action other than reading data, do not generate a substitute query. Instead, return exactly this single line and nothing else: REFUSED_NON_SELECT_INTENT
 """
 
         try:
