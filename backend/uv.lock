@@ -340,7 +340,7 @@ wheels = [
 [[package]]
 name = "guardrailed-nl-to-sql"
 version = "0.1.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "dj-database-url" },
     { name = "django" },
