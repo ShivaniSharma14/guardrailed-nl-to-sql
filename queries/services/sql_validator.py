@@ -2,7 +2,7 @@ import sqlglot
 from django.core.exceptions import ValidationError
 from sqlglot import exp
 
-
+MAX_ROW_LIMIT = 100
 class SQLValidatorService:
     """
     The main security boundary of our application. It parses untrusted LLM-generated SQL
@@ -61,7 +61,7 @@ class SQLValidatorService:
                     f"Security Violation: Unauthorized table access attempted: '{table_name}'."
                 )
 
-        MAX_ROW_LIMIT = 100
+        
 
         # Guardrail 4: Performance Protection — enforce a maximum LIMIT on every SELECT,
         # whether one was already present or not.
@@ -74,9 +74,6 @@ class SQLValidatorService:
                 if int(limit_value) > MAX_ROW_LIMIT:
                     select_expr.set("limit", exp.Limit(expression=exp.Literal.number(MAX_ROW_LIMIT)))
 
-        # for sub_select in ast.find_all(exp.Select):
-        #     if not sub_select.args.get("limit"):
-        #         sub_select.set("limit", exp.Limit(expression=exp.Literal.number(100)))
 
         # Return the verified, clean, compiled SQL string back to the request loop
         return ast.sql(dialect="postgres")

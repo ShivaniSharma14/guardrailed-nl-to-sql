@@ -6,13 +6,13 @@ from django.test import TestCase
 
 from queries.services.llm_service import LLMQueryService
 
-
-def _mock_completion(content: str):
+def _mock_completion(content: str, finish_reason: str = "stop"):
     """Builds a fake OpenAI response shaped like response.choices[0].message.content"""
     mock_message = mock.Mock()
     mock_message.content = content
     mock_choice = mock.Mock()
     mock_choice.message = mock_message
+    mock_choice.finish_reason = finish_reason
     mock_response = mock.Mock()
     mock_response.choices = [mock_choice]
     return mock_response
@@ -109,3 +109,55 @@ class LLMQueryServiceGenerateSQLTests(TestCase):
         _, call_kwargs = mock_client.chat.completions.create.call_args
         user_message = call_kwargs["messages"][1]["content"]
         self.assertIn("show all customers by region", user_message)
+
+    @mock.patch("queries.services.llm_service.OpenAI")
+    def test_truncated_completion_raises_validation_error(self, mock_openai_class):
+        mock_client = mock_openai_class.return_value
+        # the exact shape of the production bug: SQL cut off mid-statement
+        mock_client.chat.completions.create.return_value = _mock_completion(
+            "SELECT SUM(oi.quantity * oi.unit_price) FROM order_items oi "
+            "JOIN orders o ON oi.order_id = o.id JOIN customers c ON o.customer_id =",
+            finish_reason="length",
+        )
+
+        service = LLMQueryService()
+        with self.assertRaisesMessage(ValidationError, "cut off before completion"):
+            service.generate_sql("revenue by region", "TABLE customers: ...")
+
+    @mock.patch("queries.services.llm_service.OpenAI")
+    def test_refusal_sentinel_raises_write_violation(self, mock_openai_class):
+        mock_client = mock_openai_class.return_value
+        mock_client.chat.completions.create.return_value = _mock_completion(
+            "REFUSED_NON_SELECT_INTENT"
+        )
+
+        service = LLMQueryService()
+        with self.assertRaisesMessage(
+            ValidationError, "Prohibited database write operation"
+        ):
+            service.generate_sql("delete all customers", "TABLE customers: ...")
+
+    @mock.patch("queries.services.llm_service.OpenAI")
+    def test_refusal_sentinel_with_whitespace_still_detected(self, mock_openai_class):
+        mock_client = mock_openai_class.return_value
+        mock_client.chat.completions.create.return_value = _mock_completion(
+            "  REFUSED_NON_SELECT_INTENT\n"
+        )
+
+        service = LLMQueryService()
+        with self.assertRaises(ValidationError):
+            service.generate_sql("drop everything", "TABLE customers: ...")
+
+    @mock.patch("queries.services.llm_service.OpenAI")
+    def test_max_tokens_leaves_headroom_for_join_queries(self, mock_openai_class):
+        mock_client = mock_openai_class.return_value
+        mock_client.chat.completions.create.return_value = _mock_completion(
+            "SELECT * FROM customers"
+        )
+
+        service = LLMQueryService()
+        service.generate_sql("show all customers", "TABLE customers: ...")
+
+        _, call_kwargs = mock_client.chat.completions.create.call_args
+        # regression: 300 silently truncated 3-table join+aggregate queries
+        self.assertGreaterEqual(call_kwargs["max_tokens"], 800)

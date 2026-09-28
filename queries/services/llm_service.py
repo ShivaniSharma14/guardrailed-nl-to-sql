@@ -71,7 +71,10 @@ CRITICAL INSTRUCTIONS:
             )
             raw_sql = response.choices[0].message.content.strip()
 
-            raw_sql = response.choices[0].message.content.strip()
+            if raw_sql.strip() == "REFUSED_NON_SELECT_INTENT":
+                raise ValidationError(
+                "Security Violation: Prohibited database write operation attempted (refused by model)."
+            )
 
             # Clean up trailing markdown symbols if the model accidentally violates constraints
             if raw_sql.startswith("```"):

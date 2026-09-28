@@ -1,10 +1,11 @@
 import time
+import logging
 from django.core.exceptions import ValidationError
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-import logging
+
 
 from queries.serializers import QueryRequestSerializer, QueryLogSerializer
 from queries.services.llm_service import LLMQueryService
@@ -83,9 +84,6 @@ class NaturalLanguageQueryView(APIView):
         except ValidationError as e:
             latency_ms = int((time.perf_counter() - start_time) * 1000)
             error_str = str(e)
-
-            
-            
             
             # Determine the standardized error code and classification
             if "Multiple or invalid SQL statements" in error_str:
@@ -117,6 +115,11 @@ class NaturalLanguageQueryView(APIView):
                 log_status = "failed"
                 error_code = "DATABASE_EXECUTION_ERROR"
                 clean_message = "The query encountered a runtime error inside the database execution pool."
+
+            elif "cut off before completion" in error_str:
+                log_status = "failed"
+                error_code = "RESPONSE_TRUNCATED"
+                clean_message = "The generated query was incomplete. Try a simpler or more specific question."
 
             else:
                 log_status = "failed"

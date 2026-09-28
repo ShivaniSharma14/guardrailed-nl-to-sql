@@ -98,7 +98,7 @@ class NaturalLanguageQueryBlockedSQLTests(APITestCase):
         response = self.client.post(self.url, {"question": "Delete everything"}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["error_code"], "SQL_GUARDRAIL_VIOLATION")
+        self.assertEqual(response.data["error_code"], "SQL_WRITE_OPERATION_BLOCKED")
 
     @mock.patch("queries.views.LLMQueryService")
     def test_blocked_sql_is_recorded_in_log_with_ai_sql_preserved(self, mock_llm_class):
@@ -108,7 +108,7 @@ class NaturalLanguageQueryBlockedSQLTests(APITestCase):
 
         log = QueryLog.objects.get(user=self.user)
         self.assertEqual(log.status, "blocked")
-        self.assertEqual(log.error_code, "SQL_GUARDRAIL_VIOLATION")
+        self.assertEqual(log.error_code, "SQL_WRITE_OPERATION_BLOCKED")
         # The dangerous SQL the AI proposed should still be preserved for audit,
         # even though it was never executed
         self.assertEqual(log.ai_proposed_sql, "DROP TABLE customers")
@@ -132,7 +132,7 @@ class NaturalLanguageQueryBlockedSQLTests(APITestCase):
         response = self.client.post(self.url, {"question": "Show secrets"}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["error_code"], "SQL_GUARDRAIL_VIOLATION")
+        self.assertEqual(response.data["error_code"], "SQL_TABLE_NOT_ALLOWED")
 
 
 class NaturalLanguageQueryLLMFailureTests(APITestCase):
