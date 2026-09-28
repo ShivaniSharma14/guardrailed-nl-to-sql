@@ -28,6 +28,13 @@ STORAGES = {
     },
 }
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "django_cache",
+    }
+}
+
 # CORS: explicit allowlist only, no wildcard — filled in once the frontend
 # has a real deployed origin.
 CORS_ALLOWED_ORIGINS = [

@@ -1,9 +1,9 @@
 import os
-
+import logging
 from django.core.exceptions import ValidationError
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
 
-
+logger = logging.getLogger(__name__)
 class LLMQueryService:
     """
     Acts as a pure translation gateway. It takes the natural language question
@@ -62,6 +62,7 @@ CRITICAL INSTRUCTIONS:
                 temperature=0.0,  # Force deterministic output, minimize creative hallucinations!
                 max_tokens=800,
             )
+            logger.info("LLM tokens used: %s", response.usage.total_tokens)
 
             finish_reason = response.choices[0].finish_reason
             if finish_reason == "length":
@@ -81,6 +82,9 @@ CRITICAL INSTRUCTIONS:
                 raw_sql = raw_sql.replace("```sql", "").replace("```", "").strip()
 
             return raw_sql
+
+        except RateLimitError:
+            raise ValidationError("AI Provider Rate Limit: provider quota exhausted.")
 
         except Exception as e:
             raise ValidationError(

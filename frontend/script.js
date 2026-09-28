@@ -304,6 +304,12 @@ askButton.addEventListener("click", async function () {
 
       return;
     }
+    
+    if (response.status === 429) {
+      queryError.textContent =
+      "You're asking too fast, or the demo has hit its daily capacity. Please wait a bit and try again.";
+      return;
+    }
 
 
     const data = await response.json();

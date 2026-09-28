@@ -12,14 +12,18 @@ from queries.services.llm_service import LLMQueryService
 from queries.services.schema_discovery import SchemaDiscoveryService
 from queries.services.sql_executor import SQLExecutorService
 from queries.services.sql_validator import SQLValidatorService
+from queries.services.throttles import NLQueryBurstThrottle, NLQueryDailyThrottle, NLQueryGlobalThrottle
+
 from queries.models import QueryLog
 from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
+
 logger = logging.getLogger(__name__)
 
 class NaturalLanguageQueryView(APIView):
     # Core MVP Requirement: Only verified logged-in users can execute queries
     permission_classes = [IsAuthenticated]
+    throttle_classes = [NLQueryBurstThrottle, NLQueryDailyThrottle, NLQueryGlobalThrottle]
 
     def post(self, request, *args, **kwargs):
 
@@ -121,6 +125,11 @@ class NaturalLanguageQueryView(APIView):
                 error_code = "RESPONSE_TRUNCATED"
                 clean_message = "The generated query was incomplete. Try a simpler or more specific question."
 
+            elif "AI Provider Rate Limit" in error_str:
+                log_status = "failed"
+                error_code = "LLM_QUOTA_EXHAUSTED"
+                clean_message = "The AI provider is at capacity right now. Please try again in a minute."
+                
             else:
                 log_status = "failed"
                 error_code = "PIPELINE_EXCEPTION"

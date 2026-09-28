@@ -1,6 +1,8 @@
 import os
 from unittest import mock
 
+from openai import RateLimitError
+
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
@@ -161,3 +163,19 @@ class LLMQueryServiceGenerateSQLTests(TestCase):
         _, call_kwargs = mock_client.chat.completions.create.call_args
         # regression: 300 silently truncated 3-table join+aggregate queries
         self.assertGreaterEqual(call_kwargs["max_tokens"], 800)
+
+
+
+    def test_provider_rate_limit_raises_specific_error(self):
+        fake_response = mock.Mock(status_code=429, headers={})
+        err = RateLimitError("quota", response=fake_response, body=None)
+
+        with mock.patch.dict("os.environ", {"AI_PROVIDER_API_KEY": "test-key"}):
+           service = LLMQueryService()
+        service.client = mock.Mock()
+        service.client.chat.completions.create.side_effect = err
+
+        with self.assertRaises(ValidationError) as ctx:
+            service.generate_sql("q", "schema")
+
+        self.assertIn("AI Provider Rate Limit", str(ctx.exception))

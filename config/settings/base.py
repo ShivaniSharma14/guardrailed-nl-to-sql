@@ -87,7 +87,12 @@ MAILERS = {
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    "DEFAULT_THROTTLE_RATES": {
+        "nl_query_burst": "3/min",
+        "nl_query_daily": "30/day",
+        "nl_query_global": "80/day",
+    },
 }
 
 

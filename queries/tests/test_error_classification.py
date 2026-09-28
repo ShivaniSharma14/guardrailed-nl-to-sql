@@ -50,3 +50,12 @@ class ErrorClassificationTests(APITestCase):
             )
             r = self.client.post(self.url, {"question": "anything"})
         self.assertEqual(r.data["error_code"], "RESPONSE_TRUNCATED")
+
+
+    @mock.patch("queries.views.LLMQueryService")
+    def test_provider_quota_maps_to_llm_quota_exhausted(self, mock_llm):
+        mock_llm.return_value.generate_sql.side_effect = ValidationError(
+            "AI Provider Rate Limit: provider quota exhausted."
+        )
+        response = self.client.post(self.url, {"question": "x"})
+        self.assertEqual(response.data["error_code"], "LLM_QUOTA_EXHAUSTED")
