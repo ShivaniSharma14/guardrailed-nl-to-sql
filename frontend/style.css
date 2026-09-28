@@ -242,6 +242,10 @@ button.secondary:hover {
   color: var(--error);
 }
 
+.details-text {
+  color: var(--muted);
+}
+
 
 /* ------------------------------
    Application header

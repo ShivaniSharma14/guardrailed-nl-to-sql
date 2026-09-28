@@ -49,6 +49,9 @@ const askButton =
 const queryError =
   document.querySelector("#query-error");
 
+const details =
+  document.querySelector("#details");
+
 const resultsTable =
   document.querySelector("#results-table");
 
@@ -260,6 +263,7 @@ askButton.addEventListener("click", async function () {
     questionInput.value.trim();
 
   queryError.textContent = "";
+  details.textContent = "";
   clearTable(resultsTable);
 
   if (!question) {
@@ -306,7 +310,7 @@ askButton.addEventListener("click", async function () {
     }
     
     if (response.status === 429) {
-      queryError.textContent =
+      details.textContent =
       "You're asking too fast, or the demo has hit its daily capacity. Please wait a bit and try again.";
       return;
     }
