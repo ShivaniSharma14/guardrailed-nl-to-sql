@@ -8,9 +8,9 @@ A deployed Django/DRF application that turns natural-language questions into SQL
 
 *(Both are on free tiers — the backend spins down after 15 minutes idle, so the first request may take a few seconds to wake it up.)*
 
-![Successful query](Screenshot 2026-09-29 112223.png)
+![Successful query](successful-query.png)
 
-![Blocked unsafe query](image.png)
+![Blocked unsafe query](blocked-query.png)
 
 ---
 
