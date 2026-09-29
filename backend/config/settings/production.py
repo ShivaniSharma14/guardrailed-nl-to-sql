@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 
 import dj_database_url
 
@@ -51,3 +52,20 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+
+
+# Explicit override — base.py defines no SIMPLE_JWT block, which would
+# otherwise leave production silently running on simplejwt's library
+# default (a 5-minute access token). Matches local.py's lifetime so both
+# environments behave the same way during testing.
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": False,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "USER_ID_FIELD": "email",
+    "USER_ID_CLAIM": "user_email",
+}
