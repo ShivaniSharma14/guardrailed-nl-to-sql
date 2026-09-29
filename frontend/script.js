@@ -62,6 +62,85 @@ const historyTable =
   document.querySelector("#history-table");
 
 
+
+  // --------------------------------------------------
+// Token storage
+// --------------------------------------------------
+
+function saveTokens(access, refresh) {
+  localStorage.setItem("access_token", access);
+  if (refresh) localStorage.setItem("refresh_token", refresh);
+}
+
+function getAccessToken() {
+  return localStorage.getItem("access_token");
+}
+
+function getRefreshToken() {
+  return localStorage.getItem("refresh_token");
+}
+
+function clearTokens() {
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+}
+
+async function refreshAccessToken() {
+  const refresh = getRefreshToken();
+  if (!refresh) return null;
+
+  try {
+    const response = await fetch(`${API_BASE}/api/auth/refresh/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh }),
+    });
+
+    if (!response.ok) {
+      clearTokens(); // refresh token itself is dead or expired
+      return null;
+    }
+
+    const data = await response.json();
+    saveTokens(data.access, null); // no rotation configured, refresh token is unchanged
+    return data.access;
+  } catch (error) {
+    return null;
+  }
+}
+
+function showLoggedOutState() {
+  clearTokens();
+  appView.classList.add("hidden");
+  registerView.classList.add("hidden");
+  loginView.classList.remove("hidden");
+}
+
+// Wraps an authenticated request: retries once after a silent refresh on 401.
+async function authedFetch(url, options = {}) {
+  const token = getAccessToken();
+  let response = await fetch(url, {
+    ...options,
+    headers: { ...options.headers, Authorization: `Bearer ${token}` },
+  });
+
+  if (response.status === 401) {
+    const newToken = await refreshAccessToken();
+    if (!newToken) {
+      showLoggedOutState();
+      loginError.textContent = "Your session expired. Please log in again.";
+      throw new Error("Session expired");
+    }
+    response = await fetch(url, {
+      ...options,
+      headers: { ...options.headers, Authorization: `Bearer ${newToken}` },
+    });
+  }
+
+  return response;
+}
+
+
 // --------------------------------------------------
 // Login
 // --------------------------------------------------
@@ -105,13 +184,14 @@ loginButton.addEventListener("click", async function () {
       return;
     }
 
-    accessToken = data.access;
+    saveTokens(data.access, data.refresh);
 
     loginView.classList.add("hidden");
     registerView.classList.add("hidden");
     appView.classList.remove("hidden");
 
     questionInput.focus();
+
 
   } catch (error) {
 
@@ -234,22 +314,14 @@ registerButton.addEventListener("click", async function () {
 // --------------------------------------------------
 
 logoutButton.addEventListener("click", function () {
-
-  accessToken = null;
-
-  appView.classList.add("hidden");
-  registerView.classList.add("hidden");
-  loginView.classList.remove("hidden");
+  showLoggedOutState();
 
   questionInput.value = "";
-
   clearTable(resultsTable);
   clearTable(historyTable);
-
   queryError.textContent = "";
 
   emailInput.focus();
-
 });
 
 
@@ -259,96 +331,50 @@ logoutButton.addEventListener("click", function () {
 
 askButton.addEventListener("click", async function () {
 
-  const question =
-    questionInput.value.trim();
+  const question = questionInput.value.trim();
 
   queryError.textContent = "";
   details.textContent = "";
   clearTable(resultsTable);
 
   if (!question) {
-
-    queryError.textContent =
-      "Please enter a question.";
-
+    queryError.textContent = "Please enter a question.";
     return;
   }
 
   setButtonLoading(askButton, true, "Running...");
 
   try {
+    const response = await authedFetch(`${API_BASE}/api/query/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: question }),
+    });
 
-    const response = await fetch(
-      `${API_BASE}/api/query/`,
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`
-        },
-
-        body: JSON.stringify({
-          question: question
-        })
-      }
-    );
-
-
-    // Session expired / invalid token
-    if (response.status === 401) {
-
-      accessToken = null;
-
-      appView.classList.add("hidden");
-      loginView.classList.remove("hidden");
-
-      loginError.textContent =
-        "Your session expired. Please log in again.";
-
-      return;
-    }
-    
     if (response.status === 429) {
       details.textContent =
-      "You're asking too fast, or the demo has hit its daily capacity. Please wait a bit and try again.";
+        "You're asking too fast, or the demo has hit its daily capacity. Please wait a bit and try again.";
       return;
     }
-
 
     const data = await response.json();
 
-
     if (!response.ok) {
-
       queryError.textContent =
         `${data.error || "Request failed."}` +
         `${data.error_code ? ` (${data.error_code})` : ""}`;
-
       return;
     }
 
-
-    renderTable(
-      resultsTable,
-      data.data,
-      "No results returned."
-    );
-
+    renderTable(resultsTable, data.data, "No results returned.");
 
   } catch (error) {
-
-    queryError.textContent =
-      "Could not reach the server. Try again.";
-
+    if (error.message !== "Session expired") {
+      queryError.textContent = "Could not reach the server. Try again.";
+    }
+    // if it WAS a session expiry, authedFetch already switched to the login view
   } finally {
-
-    setButtonLoading(
-      askButton,
-      false,
-      "Ask"
-    );
-
+    setButtonLoading(askButton, false, "Ask");
   }
 
 });
@@ -361,82 +387,29 @@ askButton.addEventListener("click", async function () {
 historyButton.addEventListener("click", async function () {
 
   clearTable(historyTable);
-
-  setButtonLoading(
-    historyButton,
-    true,
-    "Loading..."
-  );
+  setButtonLoading(historyButton, true, "Loading...");
 
   try {
-
-    const response = await fetch(
-      `${API_BASE}/api/queries/history/`,
-      {
-        headers: {
-          "Authorization": `Bearer ${accessToken}`
-        }
-      }
-    );
-
-
-    if (response.status === 401) {
-
-      accessToken = null;
-
-      appView.classList.add("hidden");
-      loginView.classList.remove("hidden");
-
-      loginError.textContent =
-        "Your session expired. Please log in again.";
-
-      return;
-    }
-
+    const response = await authedFetch(`${API_BASE}/api/queries/history/`);
 
     const data = await response.json();
 
-
     if (!response.ok) {
-
-      renderMessageRow(
-        historyTable,
-        "Could not load history."
-      );
-
+      renderMessageRow(historyTable, "Could not load history.");
       return;
     }
 
-
-    // DRF pagination:
-    // the history records are inside data.results.
-    renderTable(
-      historyTable,
-      data.results,
-      "No query history yet."
-    );
-
+    renderTable(historyTable, data.results, "No query history yet.");
 
   } catch (error) {
-
-    renderMessageRow(
-      historyTable,
-      "Could not reach the server."
-    );
-
+    if (error.message !== "Session expired") {
+      renderMessageRow(historyTable, "Could not reach the server.");
+    }
   } finally {
-
-    setButtonLoading(
-      historyButton,
-      false,
-      "Load history"
-    );
-
+    setButtonLoading(historyButton, false, "Load history");
   }
 
 });
-
-
 // --------------------------------------------------
 // Generic table renderer
 // --------------------------------------------------
@@ -563,3 +536,17 @@ window.addEventListener('pageshow', (event) => {
         window.location.reload();
     }
 });
+
+
+(async function initSession() {
+  if (!getAccessToken()) return; // never logged in, show login screen as-is
+
+  const refreshed = await refreshAccessToken();
+  if (refreshed) {
+    loginView.classList.add("hidden");
+    registerView.classList.add("hidden");
+    appView.classList.remove("hidden");
+  } else {
+    showLoggedOutState();
+  }
+})();
